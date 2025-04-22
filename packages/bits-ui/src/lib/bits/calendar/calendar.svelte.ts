@@ -51,6 +51,7 @@ type CalendarRootStateProps = WithRefProps<
 	WritableBoxedValues<{
 		value: DateValue | undefined | DateValue[];
 		placeholder: DateValue;
+		months: Month<DateValue>[];
 	}> &
 		ReadableBoxedValues<{
 			preventDeselect: boolean;
@@ -82,8 +83,7 @@ type CalendarRootStateProps = WithRefProps<
 
 export class CalendarRootState {
 	readonly opts: CalendarRootStateProps;
-	months: Month<DateValue>[] = $state([]);
-	visibleMonths = $derived.by(() => this.months.map((month) => month.value));
+	visibleMonths = $derived.by(() => this.#months.map((month) => month.value));
 	announcer: Announcer;
 	formatter: Formatter;
 	accessibleHeadingId = useId();
@@ -112,7 +112,7 @@ export class CalendarRootState {
 
 		useRefById(opts);
 
-		this.months = createMonths({
+		this.opts.months.current = createMonths({
 			dateObj: this.opts.placeholder.current,
 			weekStartsOn: this.opts.weekStartsOn.current,
 			locale: this.opts.locale.current,
@@ -157,7 +157,7 @@ export class CalendarRootState {
 			locale: this.opts.locale,
 			fixedWeeks: this.opts.fixedWeeks,
 			numberOfMonths: this.opts.numberOfMonths,
-			setMonths: (months: Month<DateValue>[]) => (this.months = months),
+			setMonths: (months: Month<DateValue>[]) => (this.opts.months.current = months),
 		});
 
 		/**
@@ -215,8 +215,24 @@ export class CalendarRootState {
 		});
 	}
 
+	/**
+	 * Currently displayed months, with default value fallback for SSR,
+	 * as boxes don't update server-side.
+	 */
+	get #months() {
+		return this.opts.months.current.length
+			? this.opts.months.current
+			: createMonths({
+					dateObj: this.opts.placeholder.current,
+					weekStartsOn: this.opts.weekStartsOn.current,
+					locale: this.opts.locale.current,
+					fixedWeeks: this.opts.fixedWeeks.current,
+					numberOfMonths: this.opts.numberOfMonths.current,
+				});
+	}
+
 	setMonths(months: Month<DateValue>[]) {
-		this.months = months;
+		this.opts.months.current = months;
 	}
 
 	/**
@@ -228,7 +244,7 @@ export class CalendarRootState {
 	 */
 	weekdays = $derived.by(() => {
 		return getWeekdays({
-			months: this.months,
+			months: this.#months,
 			formatter: this.formatter,
 			weekdayFormat: this.opts.weekdayFormat.current,
 		});
@@ -246,7 +262,7 @@ export class CalendarRootState {
 			setMonths: this.setMonths,
 			setPlaceholder: (date: DateValue) => (this.opts.placeholder.current = date),
 			weekStartsOn: this.opts.weekStartsOn.current,
-			months: this.months,
+			months: this.#months,
 		});
 	}
 
@@ -262,7 +278,7 @@ export class CalendarRootState {
 			setMonths: this.setMonths,
 			setPlaceholder: (date: DateValue) => (this.opts.placeholder.current = date),
 			weekStartsOn: this.opts.weekStartsOn.current,
-			months: this.months,
+			months: this.#months,
 		});
 	}
 
@@ -285,7 +301,7 @@ export class CalendarRootState {
 	isNextButtonDisabled = $derived.by(() => {
 		return getIsNextButtonDisabled({
 			maxValue: this.opts.maxValue.current,
-			months: this.months,
+			months: this.#months,
 			disabled: this.opts.disabled.current,
 		});
 	});
@@ -293,7 +309,7 @@ export class CalendarRootState {
 	isPrevButtonDisabled = $derived.by(() => {
 		return getIsPrevButtonDisabled({
 			minValue: this.opts.minValue.current,
-			months: this.months,
+			months: this.#months,
 			disabled: this.opts.disabled.current,
 		});
 	});
@@ -318,7 +334,7 @@ export class CalendarRootState {
 
 	headingValue = $derived.by(() => {
 		return getCalendarHeadingValue({
-			months: this.months,
+			months: this.#months,
 			formatter: this.formatter,
 			locale: this.opts.locale.current,
 		});
@@ -359,7 +375,7 @@ export class CalendarRootState {
 			calendarNode: this.opts.ref.current,
 			isPrevButtonDisabled: this.isPrevButtonDisabled,
 			isNextButtonDisabled: this.isNextButtonDisabled,
-			months: this.months,
+			months: this.#months,
 			numberOfMonths: this.opts.numberOfMonths.current,
 		});
 	}
@@ -440,10 +456,12 @@ export class CalendarRootState {
 		});
 	}
 
-	snippetProps = $derived.by(() => ({
-		months: this.months,
-		weekdays: this.weekdays,
-	}));
+	snippetProps = $derived.by(() => {
+		return {
+			months: this.#months,
+			weekdays: this.weekdays,
+		};
+	});
 
 	getBitsAttr(part: CalendarParts) {
 		return `data-bits-calendar-${part}`;

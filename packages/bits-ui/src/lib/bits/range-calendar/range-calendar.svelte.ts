@@ -5,7 +5,7 @@ import {
 	isSameMonth,
 	isToday,
 } from "@internationalized/date";
-import { useRefById } from "svelte-toolbelt";
+import { box, useRefById, type WritableBox } from "svelte-toolbelt";
 import { Context, watch } from "runed";
 import { CalendarRootContext } from "../calendar/calendar.svelte.js";
 import type { DateRange, Month } from "$lib/shared/index.js";
@@ -56,6 +56,7 @@ type RangeCalendarRootStateProps = WithRefProps<
 	WritableBoxedValues<{
 		value: DateRange;
 		placeholder: DateValue;
+		months: Month<DateValue>[];
 		startValue: DateValue | undefined;
 		endValue: DateValue | undefined;
 	}> &
@@ -87,8 +88,7 @@ type RangeCalendarRootStateProps = WithRefProps<
 
 export class RangeCalendarRootState {
 	readonly opts: RangeCalendarRootStateProps;
-	months: Month<DateValue>[] = $state([]);
-	visibleMonths = $derived.by(() => this.months.map((month) => month.value));
+	visibleMonths = $derived.by(() => this.#months.map((month) => month.value));
 	announcer: Announcer;
 	formatter: Formatter;
 	accessibleHeadingId = useId();
@@ -102,7 +102,7 @@ export class RangeCalendarRootState {
 
 		useRefById(opts);
 
-		this.months = createMonths({
+		this.opts.months.current = createMonths({
 			dateObj: this.opts.placeholder.current,
 			weekStartsOn: this.opts.weekStartsOn.current,
 			locale: this.opts.locale.current,
@@ -249,6 +249,22 @@ export class RangeCalendarRootState {
 		});
 	}
 
+	/**
+	 * Currently displayed months, with default value fallback for SSR,
+	 * as boxes don't update server-side.
+	 */
+	get #months() {
+		return this.opts.months.current.length
+			? this.opts.months.current
+			: createMonths({
+					dateObj: this.opts.placeholder.current,
+					weekStartsOn: this.opts.weekStartsOn.current,
+					locale: this.opts.locale.current,
+					fixedWeeks: this.opts.fixedWeeks.current,
+					numberOfMonths: this.opts.numberOfMonths.current,
+				});
+	}
+
 	#updateValue(cb: (value: DateRange) => DateRange) {
 		const value = this.opts.value.current;
 		const newValue = cb(value);
@@ -267,7 +283,7 @@ export class RangeCalendarRootState {
 	}
 
 	setMonths = (months: Month<DateValue>[]) => {
-		this.months = months;
+		this.opts.months.current = months;
 	};
 
 	/**
@@ -279,7 +295,7 @@ export class RangeCalendarRootState {
 	 */
 	weekdays = $derived.by(() => {
 		return getWeekdays({
-			months: this.months,
+			months: this.#months,
 			formatter: this.formatter,
 			weekdayFormat: this.opts.weekdayFormat.current,
 		});
@@ -335,7 +351,7 @@ export class RangeCalendarRootState {
 	isNextButtonDisabled = $derived.by(() => {
 		return getIsNextButtonDisabled({
 			maxValue: this.opts.maxValue.current,
-			months: this.months,
+			months: this.#months,
 			disabled: this.opts.disabled.current,
 		});
 	});
@@ -343,14 +359,14 @@ export class RangeCalendarRootState {
 	isPrevButtonDisabled = $derived.by(() => {
 		return getIsPrevButtonDisabled({
 			minValue: this.opts.minValue.current,
-			months: this.months,
+			months: this.#months,
 			disabled: this.opts.disabled.current,
 		});
 	});
 
 	headingValue = $derived.by(() => {
 		return getCalendarHeadingValue({
-			months: this.months,
+			months: this.#months,
 			formatter: this.formatter,
 			locale: this.opts.locale.current,
 		});
@@ -416,7 +432,7 @@ export class RangeCalendarRootState {
 			calendarNode: this.opts.ref.current,
 			isPrevButtonDisabled: this.isPrevButtonDisabled,
 			isNextButtonDisabled: this.isNextButtonDisabled,
-			months: this.months,
+			months: this.#months,
 			numberOfMonths: this.opts.numberOfMonths.current,
 		});
 	}
@@ -510,7 +526,7 @@ export class RangeCalendarRootState {
 			setMonths: this.setMonths,
 			setPlaceholder: (date: DateValue) => (this.opts.placeholder.current = date),
 			weekStartsOn: this.opts.weekStartsOn.current,
-			months: this.months,
+			months: this.#months,
 		});
 	}
 
@@ -526,7 +542,7 @@ export class RangeCalendarRootState {
 			setMonths: this.setMonths,
 			setPlaceholder: (date: DateValue) => (this.opts.placeholder.current = date),
 			weekStartsOn: this.opts.weekStartsOn.current,
-			months: this.months,
+			months: this.#months,
 		});
 	}
 
@@ -551,7 +567,7 @@ export class RangeCalendarRootState {
 	}
 
 	snippetProps = $derived.by(() => ({
-		months: this.months,
+		months: this.#months,
 		weekdays: this.weekdays,
 	}));
 
