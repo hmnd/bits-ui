@@ -50,6 +50,7 @@ import {
 	isBetweenInclusive,
 	toDate,
 } from "$lib/internal/date-time/utils.js";
+import type { WeekStartsOn } from "$lib/shared/date/types.js";
 
 type RangeCalendarRootStateProps = WithRefProps<
 	WritableBoxedValues<{
@@ -65,7 +66,7 @@ type RangeCalendarRootStateProps = WithRefProps<
 			maxValue: DateValue | undefined;
 			disabled: boolean;
 			pagedNavigation: boolean;
-			weekStartsOn: 0 | 1 | 2 | 3 | 4 | 5 | 6;
+			weekStartsOn: WeekStartsOn | undefined;
 			weekdayFormat: Intl.DateTimeFormatOptions["weekday"];
 			isDateDisabled: (date: DateValue) => boolean;
 			isDateUnavailable: (date: DateValue) => boolean;
@@ -86,6 +87,7 @@ type RangeCalendarRootStateProps = WithRefProps<
 >;
 
 export class RangeCalendarRootState {
+	readonly opts: RangeCalendarRootStateProps;
 	visibleMonths = $derived.by(() => this.#months.map((month) => month.value));
 	announcer: Announcer;
 	formatter: Formatter;
@@ -93,7 +95,8 @@ export class RangeCalendarRootState {
 	focusedValue = $state<DateValue | undefined>(undefined);
 	lastPressedDateValue: DateValue | undefined = undefined;
 
-	constructor(readonly opts: RangeCalendarRootStateProps) {
+	constructor(opts: RangeCalendarRootStateProps) {
+		this.opts = opts;
 		this.announcer = getAnnouncer();
 		this.formatter = createFormatter(this.opts.locale.current);
 
@@ -593,6 +596,8 @@ type RangeCalendarCellStateProps = WithRefProps<
 >;
 
 export class RangeCalendarCellState {
+	readonly opts: RangeCalendarCellStateProps;
+	readonly root: RangeCalendarRootState;
 	cellDate = $derived.by(() => toDate(this.opts.date.current));
 	isDisabled = $derived.by(() => this.root.isDateDisabled(this.opts.date.current));
 	isUnavailable = $derived.by(() =>
@@ -630,10 +635,10 @@ export class RangeCalendarCellState {
 		})
 	);
 
-	constructor(
-		readonly opts: RangeCalendarCellStateProps,
-		readonly root: RangeCalendarRootState
-	) {
+	constructor(opts: RangeCalendarCellStateProps, root: RangeCalendarRootState) {
+		this.opts = opts;
+		this.root = root;
+
 		useRefById(opts);
 	}
 
@@ -688,10 +693,13 @@ export class RangeCalendarCellState {
 type RangeCalendarDayStateProps = WithRefProps;
 
 class RangeCalendarDayState {
-	constructor(
-		readonly opts: RangeCalendarDayStateProps,
-		readonly cell: RangeCalendarCellState
-	) {
+	readonly opts: RangeCalendarDayStateProps;
+	readonly cell: RangeCalendarCellState;
+
+	constructor(opts: RangeCalendarDayStateProps, cell: RangeCalendarCellState) {
+		this.opts = opts;
+		this.cell = cell;
+
 		useRefById(opts);
 
 		this.onclick = this.onclick.bind(this);

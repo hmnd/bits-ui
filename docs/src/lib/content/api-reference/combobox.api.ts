@@ -6,8 +6,12 @@ import type {
 	ComboboxGroupPropsWithoutHTML,
 	ComboboxInputPropsWithoutHTML,
 	ComboboxItemPropsWithoutHTML,
+	ComboboxPortalPropsWithoutHTML,
 	ComboboxRootPropsWithoutHTML,
 	ComboboxTriggerPropsWithoutHTML,
+	ComboboxViewportPropsWithoutHTML,
+	SelectScrollDownButtonPropsWithoutHTML,
+	SelectScrollUpButtonPropsWithoutHTML,
 } from "bits-ui";
 import {
 	NoopProp,
@@ -20,7 +24,7 @@ import {
 	StringOrArrayStringProp,
 } from "./extended-types/shared/index.js";
 import { ComboboxScrollAlignmentProp } from "./extended-types/combobox/index.js";
-import { ItemsProp } from "./extended-types/select/index.js";
+import { DelayProp, ItemsProp } from "./extended-types/select/index.js";
 import { FloatingContentChildSnippetProps } from "./extended-types/floating/index.js";
 import {
 	arrowProps,
@@ -41,6 +45,7 @@ import {
 	floatingProps,
 	focusScopeProps,
 	forceMountProp,
+	portalProps,
 	preventOverflowTextSelectionProp,
 	preventScrollProp,
 	withChildProps,
@@ -357,14 +362,75 @@ export const arrow = createApiSchema<ComboboxArrowPropsWithoutHTML>({
 	],
 });
 
+export const portal = createApiSchema<ComboboxPortalPropsWithoutHTML>({
+	title: "Portal",
+	description:
+		"When used, will render the combobox content into the body or custom `to` element when open",
+	props: portalProps,
+});
+
+const scrollButtonProps = {
+	delay: createFunctionProp({
+		definition: DelayProp,
+		description:
+			"Controls the initial delay (tick 0) and delay between auto-scrolls in milliseconds.",
+		stringDefinition: "(tick: number) => number",
+		default: "() => 50",
+	}),
+	...withChildProps({ elType: "HTMLDivElement" }),
+};
+
+export const scrollUpButton = createApiSchema<SelectScrollUpButtonPropsWithoutHTML>({
+	title: "ScrollUpButton",
+	description:
+		"An optional scroll up button element to improve the scroll experience within the combobox. Should be used in conjunction with the `Combobox.Viewport` component.",
+	props: scrollButtonProps,
+	dataAttributes: [
+		createDataAttrSchema({
+			name: "combobox-scroll-up-button",
+			description: "Present on the scroll up button element.",
+		}),
+	],
+});
+
+export const scrollDownButton = createApiSchema<SelectScrollDownButtonPropsWithoutHTML>({
+	title: "ScrollDownButton",
+	description:
+		"An optional scroll down button element to improve the scroll experience within the combobox. Should be used in conjunction with the `Combobox.Viewport` component.",
+	props: scrollButtonProps,
+	dataAttributes: [
+		createDataAttrSchema({
+			name: "combobox-scroll-down-button",
+			description: "Present on the scroll down button element.",
+		}),
+	],
+});
+
+export const viewport = createApiSchema<ComboboxViewportPropsWithoutHTML>({
+	title: "Viewport",
+	description:
+		"An optional element to track the scroll position of the combobox for rendering the scroll up/down buttons.",
+	props: withChildProps({ elType: "HTMLDivElement" }),
+	dataAttributes: [
+		createDataAttrSchema({
+			name: "combobox-viewport",
+			description: "Present on the viewport element.",
+		}),
+	],
+});
+
 export const combobox = [
 	root,
 	trigger,
+	viewport,
 	content,
 	contentStatic,
+	portal,
 	item,
 	input,
 	group,
 	groupHeading,
+	scrollUpButton,
+	scrollDownButton,
 	arrow,
 ];

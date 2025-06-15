@@ -1,5 +1,125 @@
 # bits-ui
 
+## 1.5.3
+
+### Patch Changes
+
+-   chore: remove internal uses of parameter properties ([#1466](https://github.com/huntabyte/bits-ui/pull/1466))
+
+## 1.5.2
+
+### Patch Changes
+
+-   fix(RangeCalendar): ensure `weekStartsOn` is absolute and fallback to locale if not provided ([#1462](https://github.com/huntabyte/bits-ui/pull/1462))
+
+-   fix(DateRangePicker): use current field to determine max days in month ([#1460](https://github.com/huntabyte/bits-ui/pull/1460))
+
+-   fix(DateRangePicker): ensure `weekStartsOn` is absolute and fallback to locale if not provided ([#1462](https://github.com/huntabyte/bits-ui/pull/1462))
+
+-   fix(DatePicker): ensure `weekStartsOn` is absolute and fallback to locale if not provided ([#1462](https://github.com/huntabyte/bits-ui/pull/1462))
+
+-   fix(Calendar): ensure `weekStartsOn` is absolute and fallback to locale if not provided ([#1462](https://github.com/huntabyte/bits-ui/pull/1462))
+
+-   fix(DateRangeField): use current field to determine max days in month ([#1460](https://github.com/huntabyte/bits-ui/pull/1460))
+
+## 1.5.1
+
+### Patch Changes
+
+-   fix(NavigationMenu): allow roving focus to link items ([#1457](https://github.com/huntabyte/bits-ui/pull/1457))
+
+## 1.5.0
+
+### Minor Changes
+
+-   feat(Menu): add `onSelect` for SubTrigger ([#1454](https://github.com/huntabyte/bits-ui/pull/1454))
+
+### Patch Changes
+
+-   fix(ScrollArea): ensure thumb properly restores previous position ([#1455](https://github.com/huntabyte/bits-ui/pull/1455))
+
+-   fix(DatePicker): export `Portal` parts ([#1451](https://github.com/huntabyte/bits-ui/pull/1451))
+
+-   fix(Menu): remove unused `closeOnSelect` prop from SubTrigger components ([#1453](https://github.com/huntabyte/bits-ui/pull/1453))
+
+## 1.4.8
+
+### Patch Changes
+
+-   fix(Checkbox): ensure Checkbox.Group value setter is called ([#1440](https://github.com/huntabyte/bits-ui/pull/1440))
+
+## 1.4.7
+
+### Patch Changes
+
+-   fix(Multiple): ensure `preventOverflowTextSelection` prop is applied ([#1435](https://github.com/huntabyte/bits-ui/pull/1435))
+
+## 1.4.6
+
+### Patch Changes
+
+-   fix(Command): fallback to id when no group value ([#1428](https://github.com/huntabyte/bits-ui/pull/1428))
+
+## 1.4.5
+
+### Patch Changes
+
+-   fix(Command): ensure groups without headings have a fallback ([#1425](https://github.com/huntabyte/bits-ui/pull/1425))
+
+## 1.4.4
+
+### Patch Changes
+
+-   fix(Dialog): ensure `role="heading"` exists on title ([#1420](https://github.com/huntabyte/bits-ui/pull/1420))
+
+## 1.4.3
+
+### Patch Changes
+
+-   fix(DateRangeField): do not update start date automatically ([#1406](https://github.com/huntabyte/bits-ui/pull/1406))
+
+-   fix(DateRangePicker): do not update start date automatically ([#1406](https://github.com/huntabyte/bits-ui/pull/1406))
+
+## 1.4.2
+
+### Patch Changes
+
+-   fix(Dialog): ensure conditional content doesn't break nested focus ([#1410](https://github.com/huntabyte/bits-ui/pull/1410))
+
+-   fix(Command): ensure asynchronously loaded items register properly ([#1405](https://github.com/huntabyte/bits-ui/pull/1405))
+
+-   fix(Command): list restoration after empty state ([#1405](https://github.com/huntabyte/bits-ui/pull/1405))
+
+## 1.4.1
+
+### Patch Changes
+
+-   fix(Multiple Components): ensure default values are set if entire spread props object is reassigned outside the component ([#1401](https://github.com/huntabyte/bits-ui/pull/1401))
+
+-   fix(Command): ensure `onValueChange` only fires when the value changes ([#1403](https://github.com/huntabyte/bits-ui/pull/1403))
+
+-   fix(Select): ensure typeahead ignores leading and trailing spaces ([#1399](https://github.com/huntabyte/bits-ui/pull/1399))
+
+-   fix(Select): disabled items should not be highlighted ([#1399](https://github.com/huntabyte/bits-ui/pull/1399))
+
+## 1.4.0
+
+### Minor Changes
+
+-   feat(Combobox): add `delay` prop to scroll buttons for custom scroll delay ([#1395](https://github.com/huntabyte/bits-ui/pull/1395))
+
+-   feat(Select): add `delay` prop to scroll buttons for custom scroll delay ([#1395](https://github.com/huntabyte/bits-ui/pull/1395))
+
+### Patch Changes
+
+-   fix(Slider): update tick position calculation for consistent scaling ([#1375](https://github.com/huntabyte/bits-ui/pull/1375))
+
+-   chore(Popover): export `PopoverPortalPropsWithoutHTML` from Popover types ([#1397](https://github.com/huntabyte/bits-ui/pull/1397))
+
+-   fix(FocusScope): safely call onCloseAutoFocus handler if defined ([#1366](https://github.com/huntabyte/bits-ui/pull/1366))
+
+-   fix(Select): ensure `scrollAlignment` prop is used (if provided) when scrolling ([#1390](https://github.com/huntabyte/bits-ui/pull/1390))
+
 ## 1.3.19
 
 ### Patch Changes

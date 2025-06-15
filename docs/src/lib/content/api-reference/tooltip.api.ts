@@ -2,6 +2,7 @@ import type {
 	TooltipArrowPropsWithoutHTML,
 	TooltipContentPropsWithoutHTML,
 	TooltipContentStaticPropsWithoutHTML,
+	TooltipPortalPropsWithoutHTML,
 	TooltipProviderPropsWithoutHTML,
 	TooltipRootPropsWithoutHTML,
 	TooltipTriggerPropsWithoutHTML,
@@ -11,7 +12,10 @@ import {
 	OpenChildSnippetProps,
 	OpenChildrenSnippetProps,
 } from "./extended-types/shared/index.js";
-import { FloatingContentChildSnippetProps } from "./extended-types/floating/index.js";
+import {
+	FloatingContentChildSnippetProps,
+	FloatingSideProp,
+} from "./extended-types/floating/index.js";
 import {
 	arrowProps,
 	childrenSnippet,
@@ -27,6 +31,7 @@ import {
 	escapeLayerProps,
 	floatingProps,
 	forceMountProp,
+	portalProps,
 	withChildProps,
 } from "$lib/content/api-reference/helpers.js";
 import * as C from "$lib/content/constants.js";
@@ -218,7 +223,20 @@ export const arrow = createApiSchema<TooltipArrowPropsWithoutHTML>({
 			name: "tooltip-arrow",
 			description: "Present on the arrow element.",
 		}),
+		createDataAttrSchema({
+			name: "side",
+			description: "The side of the tooltip that the arrow is on.",
+			definition: FloatingSideProp,
+			isEnum: true,
+		}),
 	],
 });
 
-export const tooltip = [provider, root, trigger, content, contentStatic, arrow];
+const portal = createApiSchema<TooltipPortalPropsWithoutHTML>({
+	title: "Portal",
+	description:
+		"When used, will render the tooltip content into the body or custom `to` element when open",
+	props: portalProps,
+});
+
+export const tooltip = [provider, root, trigger, content, contentStatic, arrow, portal];

@@ -272,6 +272,18 @@ it("should respect `bind:value` to the value", async () => {
 	expect(end.value).toHaveTextContent(calendarDate.end.toString());
 });
 
+it("should populate calendar date with keyboard", async () => {
+	const { start, end, user } = setup({ value: calendarDate });
+
+	await user.click(start.month);
+
+	await user.keyboard("2142020");
+	await user.keyboard("2152020");
+
+	expect(start.value).toHaveTextContent("2020-02-14");
+	expect(end.value).toHaveTextContent("2020-02-15");
+});
+
 it("should render an input for the start and end", async () => {
 	const { container } = setup({
 		startProps: {
@@ -598,4 +610,23 @@ describe("correct weekday label formatting", () => {
 			expect(weekdayEl).toHaveTextContent(weekday);
 		}
 	});
+});
+
+it("should respect the `weekStartsOn` prop regardless of locale", async () => {
+	const t = await open({
+		placeholder: new CalendarDate(1980, 1, 1),
+		weekStartsOn: 2,
+		weekdayFormat: "short",
+		locale: "fr",
+	});
+	expect(t.getByTestId("weekday-1-0").textContent).toBe("mar.");
+});
+
+it("should default the first day of the week to the locale's first day of the week if `weekStartsOn` is not provided", async () => {
+	const t = await open({
+		placeholder: new CalendarDate(1980, 1, 1),
+		weekdayFormat: "short",
+		locale: "fr",
+	});
+	expect(t.getByTestId("weekday-1-0").textContent).toBe("lun.");
 });

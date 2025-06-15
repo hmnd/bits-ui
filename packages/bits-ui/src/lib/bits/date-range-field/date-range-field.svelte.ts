@@ -47,6 +47,7 @@ type DateRangeFieldRootStateProps = WithRefProps<
 >;
 
 export class DateRangeFieldRootState {
+	readonly opts: DateRangeFieldRootStateProps;
 	startFieldState: DateFieldRootState | undefined = undefined;
 	endFieldState: DateFieldRootState | undefined = undefined;
 	descriptionId = useId();
@@ -58,7 +59,8 @@ export class DateRangeFieldRootState {
 	endValueComplete = $derived.by(() => this.opts.endValue.current !== undefined);
 	rangeComplete = $derived(this.startValueComplete && this.endValueComplete);
 
-	constructor(readonly opts: DateRangeFieldRootStateProps) {
+	constructor(opts: DateRangeFieldRootStateProps) {
+		this.opts = opts;
 		this.formatter = createFormatter(this.opts.locale.current);
 
 		useRefById({
@@ -126,18 +128,10 @@ export class DateRangeFieldRootState {
 						if (prev.start === startValue && prev.end === endValue) {
 							return prev;
 						}
-						if (isBefore(endValue, startValue)) {
-							const start = startValue;
-							const end = endValue;
-							this.#setStartValue(end);
-							this.#setEndValue(start);
-							return { start: endValue, end: startValue };
-						} else {
-							return {
-								start: startValue,
-								end: endValue,
-							};
-						}
+						return {
+							start: startValue,
+							end: endValue,
+						};
 					});
 				} else if (
 					this.opts.value.current &&
@@ -200,14 +194,6 @@ export class DateRangeFieldRootState {
 		this.opts.value.current = newValue;
 	}
 
-	#setStartValue(value: DateValue | undefined) {
-		this.opts.startValue.current = value;
-	}
-
-	#setEndValue(value: DateValue | undefined) {
-		this.opts.endValue.current = value;
-	}
-
 	props = $derived.by(
 		() =>
 			({
@@ -222,10 +208,13 @@ export class DateRangeFieldRootState {
 type DateRangeFieldLabelStateProps = WithRefProps;
 
 class DateRangeFieldLabelState {
-	constructor(
-		readonly opts: DateRangeFieldLabelStateProps,
-		readonly root: DateRangeFieldRootState
-	) {
+	readonly opts: DateRangeFieldLabelStateProps;
+	readonly root: DateRangeFieldRootState;
+
+	constructor(opts: DateRangeFieldLabelStateProps, root: DateRangeFieldRootState) {
+		this.opts = opts;
+		this.root = root;
+
 		useRefById({
 			...opts,
 			onRefChange: (node) => {

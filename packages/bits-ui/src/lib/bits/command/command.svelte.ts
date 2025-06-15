@@ -19,7 +19,6 @@ import {
 } from "$lib/internal/attrs.js";
 import { getFirstNonCommentChild } from "$lib/internal/dom.js";
 import { computeCommandScore } from "./index.js";
-import { noop } from "$lib/internal/noop.js";
 
 // attributes
 const COMMAND_ROOT_ATTR = "data-command-root";
@@ -77,6 +76,7 @@ const defaultState = {
 };
 
 class CommandRootState {
+	readonly opts: CommandRootStateProps;
 	#updateScheduled = false;
 	sortAfterTick = false;
 	sortAndFilterAfterTick = false;
@@ -92,8 +92,6 @@ class CommandRootState {
 	commandState = $state.raw<CommandState>(defaultState);
 	// internal state that we mutate in batches and publish to the `state` at once
 	_commandState = $state<CommandState>(defaultState);
-	// whether the search has had a value other than ""
-	searchHasHadValue = $state(false);
 
 	#snapshot() {
 		return $state.snapshot(this._commandState);
@@ -125,10 +123,6 @@ class CommandRootState {
 			// Filter synchronously before emitting back to children
 			this.#filterItems();
 			this.#sort();
-			this.#selectFirstItem();
-			afterTick(() => {
-				this.#selectFirstItem();
-			});
 		} else if (key === "value") {
 			// opts is a boolean referring to whether it should NOT be scrolled into view
 			if (!opts) {
@@ -140,7 +134,9 @@ class CommandRootState {
 		this.#scheduleUpdate();
 	}
 
-	constructor(readonly opts: CommandRootStateProps) {
+	constructor(opts: CommandRootStateProps) {
+		this.opts = opts;
+
 		const defaults = { ...this._commandState, value: this.opts.value.current ?? "" };
 
 		this._commandState = defaults;
@@ -149,12 +145,6 @@ class CommandRootState {
 		useRefById(opts);
 
 		this.onkeydown = this.onkeydown.bind(this);
-
-		$effect(() => {
-			if (this._commandState.search !== "") {
-				this.searchHasHadValue = true;
-			}
-		});
 	}
 
 	/**
@@ -179,7 +169,10 @@ class CommandRootState {
 	#sort(): void {
 		if (!this._commandState.search || this.opts.shouldFilter.current === false) {
 			// If no search and no selection yet, select first item
-			if (!this.commandState.value) this.#selectFirstItem();
+			this.#selectFirstItem();
+			// if (!this.commandState.value) {
+			// this.#selectFirstItem();
+			// }
 			return;
 		}
 
@@ -209,8 +202,8 @@ class CommandRootState {
 		const listInsertionElement = this.viewportNode;
 
 		const sorted = this.getValidItems().sort((a, b) => {
-			const valueA = a.getAttribute("id");
-			const valueB = b.getAttribute("id");
+			const valueA = a.getAttribute("data-value");
+			const valueB = b.getAttribute("data-value");
 			const scoresA = scores.get(valueA!) ?? 0;
 			const scoresB = scores.get(valueB!) ?? 0;
 			return scoresB - scoresA;
@@ -248,6 +241,8 @@ class CommandRootState {
 			);
 			element?.parentElement?.appendChild(element);
 		}
+
+		this.#selectFirstItem();
 	}
 
 	/**
@@ -476,10 +471,11 @@ class CommandRootState {
 	 * @param keywords - Optional search boost terms
 	 * @returns Cleanup function
 	 */
-	registerValue(id: string, value: string, keywords?: string[]): () => void {
-		if (value === this.allIds.get(id)?.value) return noop;
-		this.allIds.set(id, { value, keywords });
-		this._commandState.filtered.items.set(id, this.#score(value, keywords));
+	registerValue(value: string, keywords?: string[]): () => void {
+		if (!(value && value === this.allIds.get(value)?.value)) {
+			this.allIds.set(value, { value, keywords });
+		}
+		this._commandState.filtered.items.set(value, this.#score(value, keywords));
 
 		// Schedule sorting to run after this tick when all items are added not each time an item is added
 		if (!this.sortAfterTick) {
@@ -491,7 +487,7 @@ class CommandRootState {
 		}
 
 		return () => {
-			this.allIds.delete(id);
+			this.allIds.delete(value);
 		};
 	}
 
@@ -681,20 +677,20 @@ type CommandEmptyStateProps = WithRefProps &
 	}>;
 
 class CommandEmptyState {
+	readonly opts: CommandEmptyStateProps;
+	readonly root: CommandRootState;
 	#isInitialRender = true;
 	shouldRender = $derived.by(() => {
 		return (
-			(this.root._commandState.filtered.count === 0 &&
-				this.#isInitialRender === false &&
-				this.root.searchHasHadValue) ||
+			(this.root._commandState.filtered.count === 0 && this.#isInitialRender === false) ||
 			this.opts.forceMount.current
 		);
 	});
 
-	constructor(
-		readonly opts: CommandEmptyStateProps,
-		readonly root: CommandRootState
-	) {
+	constructor(opts: CommandEmptyStateProps, root: CommandRootState) {
+		this.opts = opts;
+		this.root = root;
+
 		$effect.pre(() => {
 			this.#isInitialRender = false;
 		});
@@ -723,21 +719,22 @@ type CommandGroupContainerStateProps = WithRefProps<
 >;
 
 class CommandGroupContainerState {
+	readonly opts: CommandGroupContainerStateProps;
+	readonly root: CommandRootState;
 	headingNode = $state<HTMLElement | null>(null);
 
+	trueValue = $state("");
 	shouldRender = $derived.by(() => {
 		if (this.opts.forceMount.current) return true;
 		if (this.root.opts.shouldFilter.current === false) return true;
 		if (!this.root.commandState.search) return true;
-		return this.root.commandState.filtered.groups.has(this.opts.id.current);
+		return this.root._commandState.filtered.groups.has(this.trueValue);
 	});
-	trueValue = $state("");
 
-	constructor(
-		readonly opts: CommandGroupContainerStateProps,
-		readonly root: CommandRootState
-	) {
-		this.trueValue = opts.value.current;
+	constructor(opts: CommandGroupContainerStateProps, root: CommandRootState) {
+		this.opts = opts;
+		this.root = root;
+		this.trueValue = opts.value.current ?? opts.id.current;
 
 		useRefById({
 			...opts,
@@ -745,22 +742,22 @@ class CommandGroupContainerState {
 		});
 
 		watch(
-			() => this.opts.id.current,
+			() => this.trueValue,
 			() => {
-				return this.root.registerGroup(this.opts.id.current);
+				return this.root.registerGroup(this.trueValue);
 			}
 		);
 
 		$effect(() => {
 			if (this.opts.value.current) {
 				this.trueValue = this.opts.value.current;
-				return this.root.registerValue(this.opts.id.current, this.opts.value.current);
+				return this.root.registerValue(this.opts.value.current);
 			} else if (this.headingNode && this.headingNode.textContent) {
 				this.trueValue = this.headingNode.textContent.trim().toLowerCase();
-				return this.root.registerValue(this.opts.id.current, this.trueValue);
-			} else if (this.opts.ref.current?.textContent) {
-				this.trueValue = this.opts.ref.current.textContent.trim().toLowerCase();
-				return this.root.registerValue(this.opts.id.current, this.trueValue);
+				return this.root.registerValue(this.trueValue);
+			} else {
+				this.trueValue = `-----${this.opts.id.current}`;
+				return this.root.registerValue(this.trueValue);
 			}
 		});
 	}
@@ -780,10 +777,13 @@ class CommandGroupContainerState {
 type CommandGroupHeadingStateProps = WithRefProps;
 
 class CommandGroupHeadingState {
-	constructor(
-		readonly opts: CommandGroupHeadingStateProps,
-		readonly group: CommandGroupContainerState
-	) {
+	readonly opts: CommandGroupHeadingStateProps;
+	readonly group: CommandGroupContainerState;
+
+	constructor(opts: CommandGroupHeadingStateProps, group: CommandGroupContainerState) {
+		this.opts = opts;
+		this.group = group;
+
 		useRefById({
 			...opts,
 			onRefChange: (node) => {
@@ -804,10 +804,13 @@ class CommandGroupHeadingState {
 type CommandGroupItemsStateProps = WithRefProps;
 
 class CommandGroupItemsState {
-	constructor(
-		readonly opts: CommandGroupItemsStateProps,
-		readonly group: CommandGroupContainerState
-	) {
+	readonly opts: CommandGroupItemsStateProps;
+	readonly group: CommandGroupContainerState;
+
+	constructor(opts: CommandGroupItemsStateProps, group: CommandGroupContainerState) {
+		this.opts = opts;
+		this.group = group;
+
 		useRefById(opts);
 	}
 
@@ -832,6 +835,8 @@ type CommandInputStateProps = WithRefProps<
 >;
 
 class CommandInputState {
+	readonly opts: CommandInputStateProps;
+	readonly root: CommandRootState;
 	#selectedItemId = $derived.by(() => {
 		const item = this.root.viewportNode?.querySelector<HTMLElement>(
 			`${COMMAND_ITEM_SELECTOR}[${COMMAND_VALUE_ATTR}="${encodeURIComponent(this.root.opts.value.current)}"]`
@@ -840,10 +845,10 @@ class CommandInputState {
 		return item?.getAttribute("id") ?? undefined;
 	});
 
-	constructor(
-		readonly opts: CommandInputStateProps,
-		readonly root: CommandRootState
-	) {
+	constructor(opts: CommandInputStateProps, root: CommandRootState) {
+		this.opts = opts;
+		this.root = root;
+
 		useRefById({
 			...opts,
 			onRefChange: (node) => {
@@ -903,6 +908,8 @@ type CommandItemStateProps = WithRefProps<
 >;
 
 class CommandItemState {
+	readonly opts: CommandItemStateProps;
+	readonly root: CommandRootState;
 	#group: CommandGroupContainerState | null = null;
 	#trueForceMount = $derived.by(() => {
 		return this.opts.forceMount.current || this.#group?.opts.forceMount.current === true;
@@ -917,7 +924,7 @@ class CommandItemState {
 		) {
 			return true;
 		}
-		const currentScore = this.root.commandState.filtered.items.get(this.opts.id.current);
+		const currentScore = this.root.commandState.filtered.items.get(this.trueValue);
 		if (currentScore === undefined) return false;
 		return currentScore > 0;
 	});
@@ -926,10 +933,9 @@ class CommandItemState {
 		() => this.root.opts.value.current === this.trueValue && this.trueValue !== ""
 	);
 
-	constructor(
-		readonly opts: CommandItemStateProps,
-		readonly root: CommandRootState
-	) {
+	constructor(opts: CommandItemStateProps, root: CommandRootState) {
+		this.opts = opts;
+		this.root = root;
 		this.#group = CommandGroupContainerContext.getOr(null);
 		this.trueValue = opts.value.current;
 
@@ -940,29 +946,26 @@ class CommandItemState {
 
 		watch(
 			[
-				() => this.opts.id.current,
-				() => this.#group?.opts.id.current,
+				() => this.trueValue,
+				() => this.#group?.trueValue,
 				() => this.opts.forceMount.current,
-				() => this.opts.ref.current,
 			],
 			() => {
 				if (this.opts.forceMount.current) return;
-				return this.root.registerItem(this.opts.id.current, this.#group?.opts.id.current);
+				return this.root.registerItem(this.trueValue, this.#group?.trueValue);
 			}
 		);
 
 		watch([() => this.opts.value.current, () => this.opts.ref.current], () => {
-			if (!this.opts.ref.current) return;
-			if (!this.opts.value.current && this.opts.ref.current.textContent) {
+			if (!this.opts.value.current && this.opts.ref.current?.textContent) {
 				this.trueValue = this.opts.ref.current.textContent.trim();
 			}
 
 			this.root.registerValue(
-				this.opts.id.current,
 				this.trueValue,
 				opts.keywords.current.map((kw) => kw.trim())
 			);
-			this.opts.ref.current.setAttribute(COMMAND_VALUE_ATTR, this.trueValue);
+			this.opts.ref.current?.setAttribute(COMMAND_VALUE_ATTR, this.trueValue);
 		});
 
 		// bindings
@@ -1015,7 +1018,11 @@ type CommandLoadingStateProps = WithRefProps<
 >;
 
 class CommandLoadingState {
-	constructor(readonly opts: CommandLoadingStateProps) {
+	readonly opts: CommandLoadingStateProps;
+
+	constructor(opts: CommandLoadingStateProps) {
+		this.opts = opts;
+
 		useRefById(opts);
 	}
 
@@ -1039,14 +1046,16 @@ type CommandSeparatorStateProps = WithRefProps &
 	}>;
 
 class CommandSeparatorState {
+	readonly opts: CommandSeparatorStateProps;
+	readonly root: CommandRootState;
 	shouldRender = $derived.by(
 		() => !this.root._commandState.search || this.opts.forceMount.current
 	);
 
-	constructor(
-		readonly opts: CommandSeparatorStateProps,
-		readonly root: CommandRootState
-	) {
+	constructor(opts: CommandSeparatorStateProps, root: CommandRootState) {
+		this.opts = opts;
+		this.root = root;
+
 		useRefById({
 			...opts,
 			deps: () => this.shouldRender,
@@ -1070,10 +1079,13 @@ type CommandListStateProps = WithRefProps &
 	}>;
 
 class CommandListState {
-	constructor(
-		readonly opts: CommandListStateProps,
-		readonly root: CommandRootState
-	) {
+	readonly opts: CommandListStateProps;
+	readonly root: CommandRootState;
+
+	constructor(opts: CommandListStateProps, root: CommandRootState) {
+		this.opts = opts;
+		this.root = root;
+
 		useRefById(opts);
 	}
 
@@ -1091,10 +1103,13 @@ class CommandListState {
 type CommandLabelStateProps = WithRefProps<ReadableBoxedValues<{ for?: string }>>;
 
 class CommandLabelState {
-	constructor(
-		readonly opts: CommandLabelStateProps,
-		readonly root: CommandRootState
-	) {
+	readonly opts: CommandLabelStateProps;
+	readonly root: CommandRootState;
+
+	constructor(opts: CommandLabelStateProps, root: CommandRootState) {
+		this.opts = opts;
+		this.root = root;
+
 		useRefById({
 			...opts,
 			onRefChange: (node) => {
@@ -1117,10 +1132,13 @@ class CommandLabelState {
 type CommandViewportStateProps = WithRefProps;
 
 class CommandViewportState {
-	constructor(
-		readonly opts: CommandViewportStateProps,
-		readonly list: CommandListState
-	) {
+	readonly opts: CommandViewportStateProps;
+	readonly list: CommandListState;
+
+	constructor(opts: CommandViewportStateProps, list: CommandListState) {
+		this.opts = opts;
+		this.list = list;
+
 		useRefById({
 			...opts,
 			onRefChange: (node) => {

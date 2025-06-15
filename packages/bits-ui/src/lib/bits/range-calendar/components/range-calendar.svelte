@@ -6,6 +6,7 @@
 	import { noop } from "$lib/internal/noop.js";
 	import { useId } from "$lib/internal/use-id.js";
 	import { getDefaultDate } from "$lib/internal/date-time/utils.js";
+	import { watch } from "runed";
 	import type { Month } from "$lib/shared/index.js";
 
 	let {
@@ -18,7 +19,7 @@
 		placeholder = $bindable(),
 		onPlaceholderChange = noop,
 		weekdayFormat = "narrow",
-		weekStartsOn = 0,
+		weekStartsOn,
 		pagedNavigation = false,
 		isDateDisabled = () => false,
 		isDateUnavailable = () => false,
@@ -46,14 +47,35 @@
 		defaultValue: value?.start,
 	});
 
-	if (placeholder === undefined) {
+	function handleDefaultPlaceholder() {
+		if (placeholder !== undefined) return;
 		placeholder = defaultPlaceholder;
 	}
 
-	if (value === undefined) {
-		const defaultValue = { start: undefined, end: undefined };
-		value = defaultValue;
+	// SSR
+	handleDefaultPlaceholder();
+
+	watch.pre(
+		() => placeholder,
+		() => {
+			handleDefaultPlaceholder();
+		}
+	);
+
+	function handleDefaultValue() {
+		if (value !== undefined) return;
+		value = { start: undefined, end: undefined };
 	}
+
+	// SSR
+	handleDefaultValue();
+
+	watch.pre(
+		() => value,
+		() => {
+			handleDefaultValue();
+		}
+	);
 
 	const rootState = useRangeCalendarRoot({
 		id: box.with(() => id),

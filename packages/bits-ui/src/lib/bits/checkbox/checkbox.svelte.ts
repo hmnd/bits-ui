@@ -28,17 +28,21 @@ type CheckboxGroupStateProps = WithRefProps<
 >;
 
 class CheckboxGroupState {
+	readonly opts: CheckboxGroupStateProps;
 	labelId = $state<string | undefined>(undefined);
 
-	constructor(readonly opts: CheckboxGroupStateProps) {
+	constructor(opts: CheckboxGroupStateProps) {
+		this.opts = opts;
+
 		useRefById(opts);
 	}
 
 	addValue(checkboxValue: string | undefined) {
 		if (!checkboxValue) return;
 		if (!this.opts.value.current.includes(checkboxValue)) {
-			this.opts.value.current.push(checkboxValue);
-			this.opts.onValueChange.current(this.opts.value.current);
+			const newValue = [...$state.snapshot(this.opts.value.current), checkboxValue];
+			this.opts.value.current = newValue;
+			this.opts.onValueChange.current(newValue);
 		}
 	}
 
@@ -46,8 +50,9 @@ class CheckboxGroupState {
 		if (!checkboxValue) return;
 		const index = this.opts.value.current.indexOf(checkboxValue);
 		if (index === -1) return;
-		this.opts.value.current.splice(index, 1);
-		this.opts.onValueChange.current(this.opts.value.current);
+		const newValue = this.opts.value.current.filter((v) => v !== checkboxValue);
+		this.opts.value.current = newValue;
+		this.opts.onValueChange.current(newValue);
 	}
 
 	props = $derived.by(
@@ -65,10 +70,13 @@ class CheckboxGroupState {
 type CheckboxGroupLabelStateProps = WithRefProps;
 
 class CheckboxGroupLabelState {
-	constructor(
-		readonly opts: CheckboxGroupLabelStateProps,
-		readonly group: CheckboxGroupState
-	) {
+	readonly opts: CheckboxGroupLabelStateProps;
+	readonly group: CheckboxGroupState;
+
+	constructor(opts: CheckboxGroupLabelStateProps, group: CheckboxGroupState) {
+		this.opts = opts;
+		this.group = group;
+
 		useRefById({
 			...opts,
 			onRefChange: (node) => {
@@ -106,6 +114,8 @@ type CheckboxRootStateProps = WithRefProps<
 >;
 
 class CheckboxRootState {
+	readonly opts: CheckboxRootStateProps;
+	readonly group: CheckboxGroupState | null;
 	trueName = $derived.by(() => {
 		if (this.group && this.group.opts.name.current) {
 			return this.group.opts.name.current;
@@ -126,10 +136,9 @@ class CheckboxRootState {
 		return this.opts.disabled.current;
 	});
 
-	constructor(
-		readonly opts: CheckboxRootStateProps,
-		readonly group: CheckboxGroupState | null = null
-	) {
+	constructor(opts: CheckboxRootStateProps, group: CheckboxGroupState | null = null) {
+		this.opts = opts;
+		this.group = group;
 		this.onkeydown = this.onkeydown.bind(this);
 		this.onclick = this.onclick.bind(this);
 		useRefById(opts);
@@ -213,6 +222,7 @@ class CheckboxRootState {
 //
 
 class CheckboxInputState {
+	readonly root: CheckboxRootState;
 	trueChecked = $derived.by(() => {
 		if (this.root.group) {
 			if (
@@ -228,7 +238,9 @@ class CheckboxInputState {
 
 	shouldRender = $derived.by(() => Boolean(this.root.trueName));
 
-	constructor(readonly root: CheckboxRootState) {}
+	constructor(root: CheckboxRootState) {
+		this.root = root;
+	}
 
 	props = $derived.by(
 		() =>

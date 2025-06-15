@@ -55,7 +55,7 @@ Here's an overview of how the Command component is structured in code:
 </script>
 
 <Command.Root>
-	<Combobox.Input />
+	<Command.Input />
 	<Command.List>
 		<Command.Viewport>
 			<Command.Empty />
@@ -340,6 +340,21 @@ command.updateSelectedByItem(-1); // previous item
 <Command.Root bind:this={command}>
 	<!-- Command content -->
 </Command.Root>
+```
+
+## Common Mistakes
+
+### Duplicate `value`s
+
+The value of each `Command.Item` **_must_** be unique. If you have two items with the same value, the component will not be able to determine which one to select, causing unexpected behavior when navigating with the keyboard or hovering with the mouse.
+
+If the text content of two items are the same for one reason or another, you should use the `value` prop to set a unique value for each item. When a `value` is set, the text content is used for display purposes only. The `value` prop is used for filtering and selection.
+
+A common pattern is to postfix the `value` with something unique, like an ID or a number so that filtering will still match the value.
+
+```svelte
+<Command.Item value="my item 1">My Item</Command.Item>
+<Command.Item value="my item 2">My Item</Command.Item>
 ```
 
 <APISection {schemas} />

@@ -9,6 +9,7 @@ import type {
 	EditableSegmentPart,
 } from "$lib/shared/index.js";
 import type { Granularity, Month, WeekStartsOn } from "$lib/shared/date/types.js";
+import type { PortalProps } from "$lib/bits/utilities/portal/index.js";
 
 export type DatePickerRootPropsWithoutHTML = WithChildren<{
 	/**
@@ -296,6 +297,9 @@ export type DatePickerCalendarPropsWithoutHTML = WithChild<{}, CalendarRootSnipp
 
 export type DatePickerCalendarProps = DatePickerCalendarPropsWithoutHTML &
 	Without<BitsPrimitiveDivAttributes, DatePickerCalendarPropsWithoutHTML>;
+
+export type DatePickerPortalPropsWithoutHTML = PortalProps;
+export type DatePickerPortalProps = DatePickerPortalPropsWithoutHTML;
 
 export type {
 	CalendarCellPropsWithoutHTML as DatePickerCellPropsWithoutHTML,

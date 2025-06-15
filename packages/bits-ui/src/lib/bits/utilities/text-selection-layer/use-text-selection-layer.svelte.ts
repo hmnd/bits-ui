@@ -13,15 +13,20 @@ import { noop } from "$lib/internal/noop.js";
 import { isHTMLElement } from "$lib/internal/is.js";
 import { isOrContainsTarget } from "$lib/internal/elements.js";
 
-type StateProps = ReadableBoxedValues<Required<Omit<TextSelectionLayerImplProps, "children">>>;
+type TextSelectionLayerStateProps = ReadableBoxedValues<
+	Required<Omit<TextSelectionLayerImplProps, "children" | "preventOverflowTextSelection">>
+>;
 
 globalThis.bitsTextSelectionLayers ??= new Map<TextSelectionLayerState, ReadableBox<boolean>>();
 
 export class TextSelectionLayerState {
+	readonly opts: TextSelectionLayerStateProps;
 	#unsubSelectionLock = noop;
 	#ref = box<HTMLElement | null>(null);
 
-	constructor(readonly opts: StateProps) {
+	constructor(opts: TextSelectionLayerStateProps) {
+		this.opts = opts;
+
 		useRefById({
 			id: opts.id,
 			ref: this.#ref,
@@ -79,7 +84,7 @@ export class TextSelectionLayerState {
 	};
 }
 
-export function useTextSelectionLayer(props: StateProps) {
+export function useTextSelectionLayer(props: TextSelectionLayerStateProps) {
 	return new TextSelectionLayerState(props);
 }
 
